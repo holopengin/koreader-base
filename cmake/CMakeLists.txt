@@ -173,16 +173,17 @@ check_libc_fn_exists(ngettext libintl.h HAS_GETTEXT)
 # of libtool, c.f., https://www.gnu.org/software/libtool/manual/html_node/Stripped-link-flags.html#Stripped-link-flags).
 #
 if(NOT ((ANDROID AND MONOLIBTIC) OR APPLE OR EMULATE_READER OR USE_SDL))
+    set(STL_INSTALL_CMD)
     if(ANDROID)
         set(STL_NAME libc++_shared.so)
     else()
         set(STL_NAME libstdc++.so.6)
     endif()
     find_compiler_lib_path(STL_PATH ${STL_NAME} REQUIRED)
-    append_binary_install_command(CMD_LIST ${STL_PATH} DESTINATION ${OUTPUT_DIR}/libs)
+    append_binary_install_command(STL_INSTALL_CMD ${STL_PATH} DESTINATION ${OUTPUT_DIR}/libs)
     add_custom_command(
         OUTPUT ${OUTPUT_DIR}/libs/${STL_NAME}
-        COMMAND ${CMD_LIST}
+        COMMAND ${STL_INSTALL_CMD}
         COMMENT "Installing '${STL_NAME}'"
         DEPENDS ${STL_PATH}
         VERBATIM
@@ -819,5 +820,47 @@ ffi_target(zstd zstd_h.lua zstd_decl.c ARGS -d libzstd)
 endif()
 
 # }}}
+
+# Summary {{{
+
+set(SUMMARY "\n")
+
+function(summary_section NAME ENV_VARS)
+    string(APPEND SUMMARY "\n${NAME}:\n\n")
+    foreach(VAR IN LISTS ARGN)
+        set(HEADER "${VAR}                    ")
+        string(SUBSTRING "${HEADER}" 0 20 HEADER)
+        set(VAL "")
+        if(ENV_VARS)
+            if(DEFINED ENV{${VAR}})
+                set(VAL "$ENV{${VAR}}")
+            endif()
+        elseif(DEFINED ${VAR})
+            set(VAL "${${VAR}}")
+        endif()
+        string(APPEND SUMMARY "    ${HEADER}: ${VAL}\n")
+    endforeach()
+    set(SUMMARY ${SUMMARY} PARENT_SCOPE)
+endfunction()
+
+summary_section("Target machine" FALSE CHOST CC CFLAGS CXX CXXFLAGS LD LDFLAGS DYNLIB_LDFLAGS AR NM OBJCOPY RANLIB RC STRIP LIB_EXT VECTO_CFLAGS)
+summary_section("Build machine"  FALSE HOSTCFLAGS HOSTCXX)
+summary_section("Miscellaneous"  FALSE KOTASYNC MONOLIBTIC USE_LJ_WPACLIENT USE_SDL WANT_SIMD GLIBC_VERSION_MAX KEEP_DEBUG)
+summary_section("CI"             TRUE  CI GITHUB_ACTIONS)
+summary_section("OS"             FALSE ANDROID APPLE LINUX)
+summary_section("Platform"       FALSE EMULATE_READER CERVANTES KINDLE KOBO LEGACY POCKETBOOK REMARKABLE)
+summary_section("Luajit"         FALSE SKIP_LUAJIT_BIN USE_LUAJIT_LIB)
+if(ANDROID)
+    summary_section("Android"    TRUE ANDROID_ARCH NDKABI ANDROID_HOME ANDROID_SDK_ROOT ANDROID_NDK_HOME ANDROID_NDK_ROOT)
+elseif(APPLE)
+    summary_section("macOS"      TRUE MACOSX_DEPLOYMENT_TARGET)
+endif()
+
+if(NOT DEFINED CACHE{SUMMARY_SHOWN})
+    message(STATUS "${SUMMARY}")
+    set(SUMMARY_SHOWN TRUE CACHE INTERNAL "summary shown")
+endif()
+
+# }}
 
 # vim: foldmethod=marker foldlevel=0
