@@ -14,19 +14,13 @@ endif
 # we disable parallelisation for this top-level Makefile.
 .NOTPARALLEL:
 
-define build_info
-$(info ************ Building for MACHINE: "$(MACHINE)" **********)
-$(info ************ PATH: "$(PATH)" **********)
-$(info ************ CHOST: "$(CHOST)" **********)
-$(info ************ NINJA: $(strip $(NINJA) $(NINJAFLAGS)) ($(NINJA_VERSION)) **********)
-$(info ************ MAKE: $(strip $(MAKE) $(MFLAGS)) ($(MAKE_VERSION)) **********)
-endef
-
 PHONY += $(addprefix $(BASE_PREFIX),all clean distclean fetchthirdparty re reinstall test uninstall)
-PHONY += bininfo bincheck buildstats info %-re setup skeleton test-data
+PHONY += base bininfo bincheck buildstats %-re setup skeleton test-data
 SOUND += cache-key build/% $(OUTPUT_DIR)/% $(STAGING_DIR)/bincheck/%
 
 # Main rules. {{{
+
+base: $(BASE_PREFIX)all
 
 $(BASE_PREFIX)all: $(BUILD_ENTRYPOINT)
 
@@ -35,9 +29,6 @@ $(BASE_PREFIX)clean:
 
 $(BASE_PREFIX)distclean:
 	rm -rf $(dir $(filter $(KOR_BASE)/build/%,$(OUTPUT_DIR))) $(wildcard $(THIRDPARTY_DIR)/*/build $(THIRDPARTY_DIR)/spec/*/build)
-
-info:
-	$(strip $(build_info))
 
 $(BASE_PREFIX)re: $(BASE_PREFIX)clean
 	$(MAKE) $(BASE_PREFIX)all
@@ -84,7 +75,10 @@ endif
 # CMake build interface. {{{
 
 setup $(BUILD_ENTRYPOINT): $(CMAKE_KOVARS) $(CMAKE_TCF) $(MESON_CROSS_TOOLCHAIN) $(MESON_HOST_TOOLCHAIN)
-	$(strip $(build_info))
+	$(info ************ Building for MACHINE: "$(MACHINE)" **********)
+	$(info ************ PATH: "$(PATH)" **********)
+	$(info ************ NINJA: $(strip $(NINJA) $(NINJAFLAGS)) ($(NINJA_VERSION)) **********)
+	$(info ************ MAKE: $(strip $(MAKE) $(MFLAGS)) ($(MAKE_VERSION)) **********)
 	$(if $(CCACHE),env CCACHE_DISABLE=1 )$(CMAKE) $(CMAKE_FLAGS) -S $(KOR_BASE)/cmake -B $(CMAKE_DIR)
 
 define write_file
@@ -271,6 +265,7 @@ else ifneq (,$(ANDROID))
   BINCHECK_LD_PATH += $(call sysroot_libdir,libc++_shared.so)
 else
   BINCHECK_LD_PATH += $(call sysroot_libdir,libc.so.6)
+  BINCHECK_LD_PATH += $(call sysroot_libdir,libcrypt.so)
 endif
 
 bincheck: $(BINCHECK_DEPS)
