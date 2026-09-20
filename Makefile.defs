@@ -238,10 +238,6 @@ else ifeq ($(TARGET), remarkable-aarch64)
 	CHOST?=aarch64-remarkable-linux-gnu
 	REMARKABLE=1
 	USE_LJ_WPACLIENT=1
-else ifeq ($(TARGET), sony-prstux)
-	CHOST?=arm-linux-gnueabihf
-	SONY_PRSTUX=1
-	USE_LJ_WPACLIENT=1
 else ifeq ($(TARGET), cervantes)
 	CERVANTES=1
 	HAS_CERVANTES_TC:=$(shell command -v arm-cervantes-linux-gnueabi-gcc 2> /dev/null)
@@ -375,7 +371,7 @@ HOSTREADELF:=readelf
 
 # Base CFLAGS, without arch. We'll need it for luajit, because its
 # Makefiles do some tricky stuff to differentiate HOST/TARGET
-BASE_CFLAGS = -O2 -g -pipe -fomit-frame-pointer
+BASE_CFLAGS = -O2 $(if $(CI),,-g) -pipe -fomit-frame-pointer
 ifneq (,$(USE_CLANG))
   # For ricers.
   # BASE_CFLAGS = -O3 -pipe -fomit-frame-pointer
@@ -395,7 +391,7 @@ endif
 # BASE_CFLAGS = $(VECTO_CFLAGS) $(LTO_FLAGS)
 # Use this for debugging:
 ifdef KODEBUG
-  BASE_CFLAGS = -Og -g -pipe -fno-omit-frame-pointer
+  BASE_CFLAGS = -Og $(if $(CI),,-g) -pipe -fno-omit-frame-pointer
   # Don't enforce extra CFLAGS in debug builds
   VECTO_CFLAGS =
 else
@@ -575,9 +571,6 @@ else ifeq ($(TARGET), remarkable)
 	TARGET_CFLAGS+=-mfloat-abi=hard
 else ifeq ($(TARGET), remarkable-aarch64)
 	TARGET_CFLAGS:=$(ARM64_A53_ARCH)
-else ifeq ($(TARGET), sony-prstux)
-	TARGET_CFLAGS:=$(ARMV7_A8_ARCH)
-	TARGET_CFLAGS+=-mfloat-abi=hard
 else ifeq ($(TARGET), cervantes)
 	TARGET_CFLAGS:=$(ARMV7_GENERIC_ARCH)
 	TARGET_CFLAGS+=-mfloat-abi=softfp
@@ -750,7 +743,7 @@ WANT_SIMD=1
 # ... but on ARM targets that are not NEON capable, that obviously won't fly...
 ifneq (,$(filter -march=arm%,$(CFLAGS)))
   # We're on ARM.
-  ifeq (,$(filter -march=armv8-a -mfpu=neon,$(CFLAGS)))
+  ifeq (,$(filter -march=armv8.2% -march=armv8-a% -mfpu=neon,$(CFLAGS)))
     # We don't support NEON.
     WANT_SIMD=
   endif
@@ -987,6 +980,7 @@ set(USE_LJ_WPACLIENT   $(USE_LJ_WPACLIENT))
 set(USE_SDL            $(SDL))
 set(WANT_SIMD          $(WANT_SIMD))
 set(GLIBC_VERSION_MAX  $(GLIBC_VERSION_MAX))
+set(KEEP_DEBUG         $(and $(filter -g%,$(BASE_CFLAGS)),1))
 
 # Platform flags.
 set(ANDROID        $(ANDROID))
@@ -996,7 +990,6 @@ set(KOBO           $(KOBO))
 set(LEGACY         $(LEGACY))
 set(POCKETBOOK     $(POCKETBOOK))
 set(REMARKABLE     $(REMARKABLE))
-set(SONY_PRSTUX    $(SONY_PRSTUX))
 
 set(SKIP_LUAJIT_BIN $(SKIP_LUAJIT_BIN))
 set(USE_LUAJIT_LIB  $(USE_LUAJIT_LIB))
