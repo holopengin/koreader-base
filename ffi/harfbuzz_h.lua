@@ -52,4 +52,8 @@ void hb_blob_destroy(hb_blob_t *);
 unsigned hb_face_get_glyph_count(const hb_face_t *);
 hb_face_t *hb_ft_face_create_referenced(FT_Face);
 unsigned hb_ot_layout_table_get_feature_tags(hb_face_t *, hb_tag_t, unsigned, unsigned *, hb_tag_t *);
+unsigned hb_ot_layout_table_get_script_tags(hb_face_t *, hb_tag_t, unsigned, unsigned *, hb_tag_t *);
+unsigned hb_ot_layout_script_get_language_tags(hb_face_t *, hb_tag_t, unsigned, unsigned, unsigned *, hb_tag_t *);
+typedef int hb_bool_t;
+hb_bool_t hb_ot_layout_language_find_feature(hb_face_t *, hb_tag_t, unsigned, unsigned, hb_tag_t, unsigned *);
 ]]

@@ -91,22 +91,68 @@ end
 -- it does not imply that every glyph has a vertical alternate, or that a
 -- particular shaping run enabled the feature.
 function hb_face_t:hasVerticalFeatures()
+    -- Primary path: table-wide enumeration. On some Kobo builds (harfbuzz
+    -- bundled with koreader-base) hb_ot_layout_table_get_feature_tags(GSUB,0)
+    -- returns 0 even for fonts that contain 'vert'/'vrt2' (e.g. Noto Sans CJK JP,
+    -- which fontTools confirms has 20 GSUB features). Fall back to per-script
+    -- union via table_get_script_tags + language_get_feature_tags.
     local count = ffi.new("unsigned[1]", 0)
-    hb.hb_ot_layout_table_get_feature_tags(self, HB.HB_OT_TAG_GSUB, 0, count, nil)
-    if count[0] == 0 then
-        return false, false
+    -- NOTE: layout queries below route through the HB proxy (not the raw
+    -- `hb` namespace) so unit tests can stub them (harfbuzz_vert_spec).
+    local ret = HB.hb_ot_layout_table_get_feature_tags(self, HB.HB_OT_TAG_GSUB, 0, count, nil)
+    local n = tonumber(count[0])
+    -- Some builds return the count as the return value and leave *count at 0.
+    if n == 0 and tonumber(ret) > 0 then n = tonumber(ret) end
+    if n > 0 then
+        local tags = ffi.new("hb_tag_t[?]", n)
+        count[0] = n
+        HB.hb_ot_layout_table_get_feature_tags(self, HB.HB_OT_TAG_GSUB, 0, count, tags)
+        -- re-read in case the second call updates count differently
+        local m = tonumber(count[0])
+        if m == 0 and tonumber(ret) > 0 then m = n else m = m > 0 and m or n end
+        local has_vert, has_vrt2 = false, false
+        for i = 0, m - 1 do
+            if tags[i] == 0x76657274 then -- "vert"
+                has_vert = true
+            elseif tags[i] == 0x76727432 then -- "vrt2"
+                has_vrt2 = true
+            end
+            if has_vert and has_vrt2 then break end
+        end
+        if has_vert or has_vrt2 then return has_vert, has_vrt2 end
+        -- if table-wide enumeration succeeded but found neither, still try
+        -- per-script fallback before returning false — defensive.
     end
-    local tags = ffi.new("hb_tag_t[?]", count[0])
-    hb.hb_ot_layout_table_get_feature_tags(self, HB.HB_OT_TAG_GSUB, 0, count, tags)
-    local has_vert, has_vrt2 = false, false
-    for i = 0, count[0] - 1 do
-        if tags[i] == 0x76657274 then -- "vert"
-            has_vert = true
-        elseif tags[i] == 0x76727432 then -- "vrt2"
-            has_vrt2 = true
+    -- Fallback: union of language-specific feature tags across all scripts.
+    local sc = ffi.new("unsigned[1]", 0)
+    local sret = HB.hb_ot_layout_table_get_script_tags(self, HB.HB_OT_TAG_GSUB, 0, sc, nil)
+    local scriptCount = tonumber(sc[0])
+    if scriptCount == 0 and tonumber(sret) > 0 then scriptCount = tonumber(sret) end
+    if scriptCount == 0 then return false, false end
+    local stags = ffi.new("hb_tag_t[?]", scriptCount)
+    sc[0] = scriptCount
+    HB.hb_ot_layout_table_get_script_tags(self, HB.HB_OT_TAG_GSUB, 0, sc, stags)
+    -- Use language_find_feature (direct tag lookup, no enumeration) — more
+    -- robust on Kobo's HarfBuzz where language_get_feature_tags returns 16
+    -- but 0-filled tags for Serif.
+    local has_vert_any, has_vrt2_any = false, false
+    for si = 0, scriptCount - 1 do
+        local lc = ffi.new("unsigned[1]", 0)
+        local lret = HB.hb_ot_layout_script_get_language_tags(self, HB.HB_OT_TAG_GSUB, si, 0, lc, nil)
+        local langCount = tonumber(lc[0])
+        if langCount == 0 and tonumber(lret) > 0 then langCount = tonumber(lret) end
+        for li = 0, langCount do
+            local langIdx = (li == 0) and 0xFFFF or (li - 1)
+            if HB.hb_ot_layout_language_find_feature(self, HB.HB_OT_TAG_GSUB, si, langIdx, 0x76657274, nil) ~= 0 then
+                has_vert_any = true
+            end
+            if HB.hb_ot_layout_language_find_feature(self, HB.HB_OT_TAG_GSUB, si, langIdx, 0x76727432, nil) ~= 0 then
+                has_vrt2_any = true
+            end
+            if has_vert_any and has_vrt2_any then return true, true end
         end
     end
-    return has_vert, has_vrt2
+    return has_vert_any, has_vrt2_any
 end
 
 function hb_face_t:destroy()
