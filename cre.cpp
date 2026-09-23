@@ -31,6 +31,7 @@ extern "C" {
 #include "lvimg.h"
 #include "lvrend_vert_diag.h"
 #include "lvtextfm_vert_diag.h"
+#include "lvtextfm_justice_diag.h"
 
 static void replaceColor( char * str, lUInt32 color ) {
 	// in line like "0 c #80000000",
@@ -801,6 +802,8 @@ DIAG_RESET_FN(resetVertIbLayoutGap,  ltext_reset_vert_ib_layout_gap)
 DIAG_GET2_FN(getVertIbLayoutGap,     ltext_get_vert_ib_layout_gap,  int, int)
 DIAG_RESET_FN(resetVertTrailingSpaceTrim, ltext_reset_vert_trailing_space_trim)
 DIAG_GET2_FN(getVertTrailingSpaceTrim, ltext_get_vert_trailing_space_trim, int, int)
+DIAG_RESET_FN(resetJusticeStats, ltext_reset_justice)
+DIAG_GET4_FN(getJusticeStats, ltext_get_justice, int, int, int, int)
 DIAG_RESET_FN(resetVertImageDrawDrift, ltext_reset_vert_image_draw_drift)
 DIAG_GET3_FN(getVertImageDrawDrift, ltext_get_vert_image_draw_drift, int, int, int)
 DIAG_RESET_FN(resetVertImageCrossUnderreserve, ltext_reset_vert_image_cross_underreserve)
@@ -4728,6 +4731,8 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getVertIbLayoutGap",   getVertIbLayoutGap},
     {"resetVertTrailingSpaceTrim", resetVertTrailingSpaceTrim},
     {"getVertTrailingSpaceTrim",   getVertTrailingSpaceTrim},
+    {"resetJusticeStats", resetJusticeStats},
+    {"getJusticeStats",   getJusticeStats},
     {"resetVertImageDrawDrift", resetVertImageDrawDrift},
     {"getVertImageDrawDrift",   getVertImageDrawDrift},
     {"resetVertImageCrossUnderreserve", resetVertImageCrossUnderreserve},

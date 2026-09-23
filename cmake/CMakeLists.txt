@@ -220,6 +220,7 @@ declare_project(
     freetype2
     fribidi
     harfbuzz
+    justice
     libjpeg-turbo
     libpng
     libunibreak
@@ -311,6 +312,12 @@ else()
 endif()
 declare_project(thirdparty/inkview ${EXCLUDE_FROM_ALL})
 set(INKVIEW_DIR ${inkview_SOURCE_DIR})
+
+# justice
+declare_project(
+    thirdparty/justice
+    SOURCE_DIR thirdparty/justice
+)
 
 # kobo-usbms
 if(KOBO)

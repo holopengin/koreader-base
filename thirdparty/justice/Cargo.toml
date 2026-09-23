@@ -1,0 +1,18 @@
+[package]
+name = "justice"
+version = "0.3.0"
+edition = "2021"
+license = "MIT"
+description = "A small, dependency-free paragraph justification engine"
+repository = "https://github.com/kitlangton/justice"
+
+[lib]
+crate-type = ["rlib", "staticlib"]
+
+[dependencies]
+unicode-segmentation = "1.13"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+opt-level = 3

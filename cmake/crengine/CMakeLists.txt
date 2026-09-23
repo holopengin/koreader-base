@@ -14,6 +14,12 @@ list(APPEND CMAKE_ARGS
     -DFRIBIDI=TRUE
     -DGIF=TRUE
     -DHARFBUZZ=TRUE
+    # justice is the fork's Latin justifier. It is the one thing here that
+    # genuinely depends on the host (cargo, and a rustc std for this target),
+    # so unlike the rest it probes rather than being forced on: a target we
+    # cannot build Rust for still produces a working crengine, just with the
+    # greedy justify it had before.
+    -DJUSTICE=AUTO
     -DLIBJPEG=TRUE
     -DLIBPNG=TRUE
     -DLIBUNIBREAK=TRUE

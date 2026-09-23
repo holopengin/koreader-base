@@ -34,11 +34,25 @@ endfunction()
 declare_dependency(android-luajit-launcher::7z MONOLIBTIC 7z LIBRARIES android log)
 
 # crengine
+# justice, the fork's Latin justifier, is a static archive just like
+# libcrengine.a, so - like everything else in this list - it has to be named
+# by hand: what the inner project puts in target_link_libraries() only says
+# what libcrengine.a may use, not what the .so that finally links it brings
+# along. staging/lib/libjustice.a is always there (a valid empty archive on
+# targets with no rustc support), and it must follow libcrengine.a, which is
+# what references its symbols.
+set(JUSTICE_LIBS ${STAGING_DIR}/lib/libjustice.a m)
+if(NOT ANDROID AND NOT APPLE AND NOT WIN32)
+    # glibc kept these in separate libraries until 2.34, and the targets we
+    # ship for are on 2.15/2.19; where they are not, they are empty stubs.
+    list(APPEND JUSTICE_LIBS pthread rt dl)
+endif()
 declare_dependency(crengine::crengine)
 target_link_libraries(
     _crengine__crengine
     INTERFACE
     ${OUTPUT_DIR}/thirdparty/crengine/build/libcrengine.a
+    ${JUSTICE_LIBS}
     freetype2::freetype
     harfbuzz::harfbuzz
     libunibreak::unibreak
